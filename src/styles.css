@@ -383,7 +383,7 @@ button.board-target::before {
 }
 
 .move-history-scroll {
-  block-size: 16rem;
+  block-size: 12rem;
   overflow: auto;
   border-block: 1px solid #d8c9af;
   background: #fbf8f1;
@@ -413,6 +413,7 @@ button.board-target::before {
 }
 
 .move-history td {
+  padding: 0.15rem;
   overflow-wrap: anywhere;
 }
 
@@ -443,6 +444,65 @@ button.board-target::before {
   text-align: center;
 }
 
+.move-record {
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.16rem;
+  border: 0;
+  border-radius: 0.18rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.move-record:hover {
+  background: #e9dac0;
+}
+
+.move-record[aria-current] {
+  background: #e0cca6;
+  box-shadow: inset 0 -2px #966a37;
+  font-weight: 700;
+}
+
+.replay-controls {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid #d8c9af;
+}
+
+.replay-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted-ink);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.replay-status [data-reviewing='true'] {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.replay-controls input {
+  width: 100%;
+  height: 1.5rem;
+  margin: 0;
+  accent-color: var(--red);
+}
+
+.replay-buttons {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr 1.2fr 0.8fr;
+  gap: 0.22rem;
+}
+
 .move-panel-controls {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -457,7 +517,8 @@ button.board-target::before {
 }
 
 .move-panel-controls > button,
-.fen-dialog button {
+.game-dialog button,
+.replay-buttons button {
   min-height: 2.5rem;
   padding: 0.3rem 0.25rem;
   border: 1px solid #c8b99e;
@@ -473,12 +534,14 @@ button.board-target::before {
 
 .move-panel-controls > button:enabled:hover,
 .move-panel-controls > button:enabled:active,
-.fen-dialog button:enabled:hover {
+.game-dialog button:enabled:hover,
+.replay-buttons button:enabled:hover {
   background: #e9dac0;
 }
 
 .move-panel-controls > button:disabled,
-.fen-dialog button:disabled {
+.game-dialog button:disabled,
+.replay-buttons button:disabled {
   color: #786e60;
   background: transparent;
   cursor: default;
@@ -486,13 +549,23 @@ button.board-target::before {
 
 .move-history-scroll:focus-visible,
 .move-panel-controls > button:focus-visible,
-.fen-dialog button:focus-visible,
-.fen-dialog textarea:focus-visible {
+.game-dialog button:focus-visible,
+.game-dialog textarea:focus-visible,
+.archive-dialog input:focus-visible,
+.replay-controls input:focus-visible,
+.replay-buttons button:focus-visible,
+.move-record:focus-visible {
   outline: 2px solid var(--red);
   outline-offset: -2px;
 }
 
-.fen-dialog {
+.replay-buttons button {
+  min-height: 2.1rem;
+  padding-inline: 0.1rem;
+  font-size: 0.8125rem;
+}
+
+.game-dialog {
   width: min(34rem, calc(100% - 2rem));
   max-height: calc(100dvh - 2rem);
   overflow: auto;
@@ -504,7 +577,7 @@ button.board-target::before {
   box-shadow: 0 0.65rem 2rem #30221530;
 }
 
-.fen-dialog::backdrop {
+.game-dialog::backdrop {
   background: #29201970;
 }
 
@@ -560,7 +633,7 @@ button.board-target::before {
   background: #f2ebde;
 }
 
-.fen-dialog button {
+.game-dialog button {
   padding-inline: 0.75rem;
 }
 
@@ -595,14 +668,49 @@ button.board-target::before {
   justify-content: flex-end;
 }
 
-.fen-dialog .fen-import-submit {
+.game-dialog .fen-import-submit:enabled {
   border-color: var(--red);
   background: var(--red);
   color: #fffaf1;
 }
 
-.fen-dialog .fen-import-submit:hover {
+.game-dialog .fen-import-submit:enabled:hover {
   background: #702719;
+}
+
+.archive-dialog {
+  width: min(28rem, calc(100% - 2rem));
+}
+
+.archive-file-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 650;
+}
+
+.archive-dialog input[type='file'] {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.35rem;
+  border: 1px solid #c8b99e;
+  border-radius: 0.25rem;
+  background: #fffdf8;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.archive-import-error,
+.archive-confirmation,
+.archive-actions {
+  margin-top: 0.75rem;
+}
+
+.archive-export-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--red);
+  font-size: 0.875rem;
 }
 
 .training {
@@ -689,7 +797,7 @@ button.board-target::before {
   }
 
   .move-history-scroll {
-    block-size: 12rem;
+    block-size: 9rem;
   }
 }
 

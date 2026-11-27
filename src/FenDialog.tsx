@@ -30,10 +30,11 @@ function importErrorMessage(error: unknown) {
 interface FenDialogProps {
   fen: string
   hasHistory: boolean
+  canImport: boolean
   onImport: (game: XiangqiGame) => void
 }
 
-export function FenDialog({ fen, hasHistory, onImport }: FenDialogProps) {
+export function FenDialog({ fen, hasHistory, canImport, onImport }: FenDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null)
   const exportField = useRef<HTMLTextAreaElement>(null)
   const importField = useRef<HTMLTextAreaElement>(null)
@@ -81,6 +82,7 @@ export function FenDialog({ fen, hasHistory, onImport }: FenDialogProps) {
 
   function submitImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!canImport) return
 
     if (pendingGame) {
       onImport(pendingGame)
@@ -115,7 +117,7 @@ export function FenDialog({ fen, hasHistory, onImport }: FenDialogProps) {
   return (
     <>
       <button type="button" onClick={open} aria-haspopup="dialog">局面 FEN</button>
-      <dialog className="fen-dialog" ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-help`}>
+      <dialog className="game-dialog fen-dialog" ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-help`}>
         <header className="fen-dialog-header">
           <h2 id={`${id}-title`}>局面 FEN</h2>
           <button type="button" onClick={close}>关闭</button>
@@ -131,38 +133,40 @@ export function FenDialog({ fen, hasHistory, onImport }: FenDialogProps) {
           </div>
         </section>
 
-        <form className="fen-section fen-import" onSubmit={submitImport}>
-          <label htmlFor={`${id}-import`}>粘贴 FEN</label>
-          <textarea
-            id={`${id}-import`}
-            ref={importField}
-            value={draft}
-            onChange={(event) => changeDraft(event.target.value)}
-            readOnly={pendingGame !== null}
-            aria-invalid={importError ? true : undefined}
-            aria-describedby={importError ? `${id}-error` : undefined}
-            rows={3}
-            wrap="soft"
-            spellCheck={false}
-            autoCapitalize="none"
-            autoCorrect="off"
-          />
-          <div className="fen-examples">
-            {examples.map((example) => (
-              <button type="button" key={example.name} disabled={pendingGame !== null} onClick={() => changeDraft(example.fen)}>
-                {example.name}
-              </button>
-            ))}
-          </div>
-          {importError && <p className="fen-error" id={`${id}-error`} role="alert">{importError}</p>}
-          {pendingGame && <p className="fen-confirmation" role="alert">导入会覆盖当前局面，并清空已有棋谱及悔棋记录。</p>}
-          <div className="fen-actions fen-import-actions">
-            {pendingGame && (
-              <button type="button" onClick={() => { setPendingGame(null); importField.current?.focus() }}>取消覆盖</button>
-            )}
-            <button className="fen-import-submit" type="submit">{pendingGame ? '确认覆盖' : '导入局面'}</button>
-          </div>
-        </form>
+        {canImport ? (
+          <form className="fen-section fen-import" onSubmit={submitImport}>
+            <label htmlFor={`${id}-import`}>粘贴 FEN</label>
+            <textarea
+              id={`${id}-import`}
+              ref={importField}
+              value={draft}
+              onChange={(event) => changeDraft(event.target.value)}
+              readOnly={pendingGame !== null}
+              aria-invalid={importError ? true : undefined}
+              aria-describedby={importError ? `${id}-error` : undefined}
+              rows={3}
+              wrap="soft"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+            />
+            <div className="fen-examples">
+              {examples.map((example) => (
+                <button type="button" key={example.name} disabled={pendingGame !== null} onClick={() => changeDraft(example.fen)}>
+                  {example.name}
+                </button>
+              ))}
+            </div>
+            {importError && <p className="fen-error" id={`${id}-error`} role="alert">{importError}</p>}
+            {pendingGame && <p className="fen-confirmation" role="alert">导入会覆盖当前局面，并清空已有棋谱及悔棋记录。</p>}
+            <div className="fen-actions fen-import-actions">
+              {pendingGame && (
+                <button type="button" onClick={() => { setPendingGame(null); importField.current?.focus() }}>取消覆盖</button>
+              )}
+              <button className="fen-import-submit" type="submit">{pendingGame ? '确认覆盖' : '导入局面'}</button>
+            </div>
+          </form>
+        ) : <p className="fen-help fen-replay-note">当前显示的是复盘局面。回到最新局面后可导入 FEN。</p>}
       </dialog>
     </>
   )

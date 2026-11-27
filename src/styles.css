@@ -151,7 +151,8 @@ a:focus-visible {
 .board-palace,
 .board-river,
 .board-piece,
-.board-target {
+.board-target,
+.board-last-move {
   position: absolute;
 }
 
@@ -230,7 +231,8 @@ a:focus-visible {
   letter-spacing: 0.25em;
 }
 
-.board-piece {
+.board-piece,
+button.board-target {
   display: grid;
   place-items: center;
   width: 12.5%;
@@ -246,7 +248,8 @@ a:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.board-piece:enabled {
+.board-piece:enabled,
+button.board-target {
   cursor: pointer;
 }
 
@@ -254,7 +257,8 @@ a:focus-visible {
   opacity: 1;
 }
 
-.board-piece:focus-visible {
+.board-piece:focus-visible,
+button.board-target:focus-visible {
   outline: 2px dashed #68472e;
   outline-offset: 2px;
 }
@@ -279,20 +283,41 @@ a:focus-visible {
   color: var(--red);
 }
 
-.board-target {
-  z-index: 1;
-  width: 3.8%;
+.board-last-move {
+  width: 12%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: var(--board-target);
+  border: 1px solid #8f652b;
+  border-radius: 0.2rem;
+  background: #a06a3033;
   pointer-events: none;
 }
 
+.board-last-move-from {
+  border-style: dashed;
+}
+
+button.board-target::before {
+  width: 30%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--board-target);
+  content: '';
+}
+
 .board-target-capture {
+  z-index: 1;
   width: 11.8%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
   border: 2px solid var(--board-target);
-  background: transparent;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.board-status:not([data-state='normal']) {
+  color: var(--red);
+  font-weight: 700;
 }
 
 .board-announcement {

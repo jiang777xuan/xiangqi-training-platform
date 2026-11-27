@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { createStandardGame, type XiangqiPieceType, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
+import { createStandardGame, type XiangqiMove, type XiangqiPieceType, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
 
 const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] as const
 const ranks = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] as const
@@ -15,9 +15,37 @@ const pieceNames: Record<XiangqiSide, Record<XiangqiPieceType, string>> = {
 export function XiangqiBoard() {
   const [game] = useState(createStandardGame)
   const [selectedSquare, setSelectedSquare] = useState<XiangqiSquare | null>(null)
+  const [lastMove, setLastMove] = useState<XiangqiMove | null>(null)
   const board = game.getBoard()
   const turn = game.getTurn()
+  const status = game.getStatus()
+  const gameOver = status.winner !== null
   const destinations = new Set(selectedSquare ? game.getLegalMoves(selectedSquare).map(({ to }) => to) : [])
+
+  let statusText = `${sideNames[turn]}行棋`
+  if (status.winner !== null) {
+    const result = status.kind === 'checkmate' ? '被将死' : '困毙'
+    statusText = `${sideNames[status.winner]}获胜 · ${sideNames[turn]}${result}`
+  } else if (status.kind === 'check') {
+    statusText += ' · 被将军，请应将'
+  }
+
+  function handleSquareClick(square: XiangqiSquare, side?: XiangqiSide) {
+    if (gameOver) return
+
+    if (selectedSquare && destinations.has(square)) {
+      const move = { from: selectedSquare, to: square }
+      if (game.tryMove(move)) {
+        setLastMove(move)
+        setSelectedSquare(null)
+      }
+      return
+    }
+
+    if (side === turn) {
+      setSelectedSquare((current) => current === square ? null : square)
+    }
+  }
 
   return (
     <figure className="board-figure">
@@ -37,40 +65,60 @@ export function XiangqiBoard() {
           {board.map((row, rowIndex) => row.map((piece, fileIndex) => {
             const square: XiangqiSquare = `${files[fileIndex]}${ranks[rowIndex]}`
             const isDestination = destinations.has(square)
-            if (!piece && !isDestination) return null
+            const wasFrom = lastMove?.from === square
+            const wasTo = lastMove?.to === square
+            if (!piece && !isDestination && !wasFrom && !wasTo) return null
 
             const position = { left: filePositions[fileIndex], top: rankPositions[rowIndex] }
             return (
               <Fragment key={square}>
-                {piece && (
-                  <button
-                    type="button"
-                    className={`board-piece${piece.side === 'red' ? ' board-piece-red' : ''}`}
-                    data-square={square}
-                    aria-label={`${sideNames[piece.side]}${pieceNames[piece.side][piece.type]} ${square}`}
-                    aria-pressed={piece.side === turn ? selectedSquare === square : undefined}
-                    disabled={piece.side !== turn}
-                    style={position}
-                    onClick={() => setSelectedSquare((current) => current === square ? null : square)}
-                  >
-                    <span className="board-piece-face">{pieceNames[piece.side][piece.type]}</span>
-                  </button>
-                )}
-                {isDestination && (
+                {(wasFrom || wasTo) && (
                   <span
-                    className={`board-target${piece ? ' board-target-capture' : ''}`}
+                    className={`board-last-move ${wasFrom ? 'board-last-move-from' : 'board-last-move-to'}`}
                     data-square={square}
                     aria-hidden="true"
                     style={position}
                   />
                 )}
+                {piece && (
+                  <button
+                    type="button"
+                    className={`board-piece${piece.side === 'red' ? ' board-piece-red' : ''}`}
+                    data-square={square}
+                    aria-label={`${isDestination ? '吃子 ' : ''}${sideNames[piece.side]}${pieceNames[piece.side][piece.type]} ${square}`}
+                    aria-pressed={!gameOver && piece.side === turn ? selectedSquare === square : undefined}
+                    disabled={gameOver || (piece.side !== turn && !isDestination)}
+                    style={position}
+                    onClick={() => handleSquareClick(square, piece.side)}
+                  >
+                    <span className="board-piece-face">{pieceNames[piece.side][piece.type]}</span>
+                  </button>
+                )}
+                {isDestination && (piece ? (
+                  <span
+                    className="board-target board-target-capture"
+                    data-square={square}
+                    aria-hidden="true"
+                    style={position}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="board-target"
+                    data-square={square}
+                    aria-label={`走到 ${square}`}
+                    style={position}
+                    onClick={() => handleSquareClick(square)}
+                  />
+                ))}
               </Fragment>
             )
           }))}
         </div>
       </div>
       <figcaption>
-        {sideNames[turn]}行棋 · 选子查看合法落点
+        <span className="board-status" role="status" data-state={status.kind}>{statusText}</span>
+        {status.kind === 'normal' && ' · 选棋后点击落点'}
         <span className="board-announcement" role="status">
           {selectedSquare && (destinations.size > 0
             ? `${selectedSquare} 的合法落点为 ${[...destinations].join('、')}`

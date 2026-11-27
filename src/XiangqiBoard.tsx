@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { createStandardGame, type XiangqiMoveRecord, type XiangqiPieceType, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
+import { createStandardGame, type XiangqiGame, type XiangqiMoveRecord, type XiangqiPieceType, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
+import { FenDialog } from './FenDialog'
 
 const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] as const
 const ranks = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] as const
@@ -27,6 +28,7 @@ function moveText(move: XiangqiMoveRecord | undefined) {
 
 export function XiangqiBoard() {
   const [game, setGame] = useState(createStandardGame)
+  const [initialFen, setInitialFen] = useState(() => game.toFen())
   const [history, setHistory] = useState(() => game.getMoveHistory())
   const [selectedSquare, setSelectedSquare] = useState<XiangqiSquare | null>(null)
   const historyScroll = useRef<HTMLDivElement>(null)
@@ -63,8 +65,7 @@ export function XiangqiBoard() {
     if (selectedSquare && destinations.has(square)) {
       const move = { from: selectedSquare, to: square }
       if (game.tryMove(move)) {
-        setHistory(game.getMoveHistory())
-        setSelectedSquare(null)
+        syncBoard(game)
       }
       return
     }
@@ -74,18 +75,26 @@ export function XiangqiBoard() {
     }
   }
 
+  function syncBoard(currentGame: XiangqiGame) {
+    setHistory(currentGame.getMoveHistory())
+    setSelectedSquare(null)
+  }
+
   function handleUndo() {
     if (game.undoMove()) {
-      setHistory(game.getMoveHistory())
-      setSelectedSquare(null)
+      syncBoard(game)
     }
   }
 
-  function handleRestart() {
-    const newGame = createStandardGame()
+  function startGame(newGame: XiangqiGame) {
     setGame(newGame)
-    setHistory(newGame.getMoveHistory())
-    setSelectedSquare(null)
+    setInitialFen(newGame.toFen())
+    syncBoard(newGame)
+  }
+
+  function resetPosition() {
+    game.loadFen(initialFen)
+    syncBoard(game)
   }
 
   return (
@@ -200,7 +209,10 @@ export function XiangqiBoard() {
         </div>
         <div className="move-panel-controls">
           <button type="button" onClick={handleUndo} disabled={history.length === 0}>悔棋</button>
-          <button type="button" onClick={handleRestart}>重新开始</button>
+          <button type="button" onClick={() => startGame(createStandardGame())}>重新开始</button>
+          <FenDialog fen={game.toFen()} hasHistory={history.length > 0} onImport={startGame} />
+          <button type="button" onClick={resetPosition}>重置当前局面</button>
+          <p className="move-reset-help">重新开始回到标准开局。重置回到本局起点。</p>
         </div>
       </section>
     </div>

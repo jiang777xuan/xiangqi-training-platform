@@ -323,3 +323,208 @@ test('高亮上一步的起点和终点，并在下一步更新', async () => {
   await playMove('b9', 'c7')
   expectLastMove('b9', 'c7')
 })
+
+function gameControl(label: string) {
+  const button = [...container.querySelectorAll<HTMLButtonElement>('.move-panel-controls button')]
+    .find((control) => control.textContent === label)
+  if (!button) throw new Error(`Missing game control: ${label}`)
+  return button
+}
+
+function moveRows() {
+  return [...container.querySelectorAll<HTMLTableRowElement>('.move-history tbody tr')]
+    .map((row) => [...row.cells].map((cell) => cell.textContent))
+}
+
+const checkingFen = '4k4/9/1R7/9/9/9/9/9/9/3K5 w - - 0 1'
+
+test('开局棋谱为空，悔棋按钮禁用', () => {
+  expect(moveRows()).toEqual([])
+  expect(gameControl('悔棋').disabled).toBe(true)
+  expect(container.querySelector('.move-current-round')?.textContent).toBe('第 1 回合')
+})
+
+test('合法走棋后记下一着并启用悔棋', async () => {
+  await playMove('b0', 'c2')
+
+  expect(moveRows()).toEqual([['1', '马八进七', '—']])
+  expect(gameControl('悔棋').disabled).toBe(false)
+})
+
+test('红黑着法按回合和阵营分列，并标记当前回合', async () => {
+  await playMove('b0', 'c2')
+  await playMove('b9', 'c7')
+  expect(container.querySelector('.move-current-round')?.textContent).toBe('第 2 回合')
+  await playMove('a3', 'a4')
+
+  expect(moveRows()).toEqual([['1', '马八进七', '马２进３'], ['2', '兵九进一', '—']])
+  expect(container.querySelector('.move-history tr[aria-current="step"] th')?.textContent).toBe('2')
+})
+
+test('红炮吃黑马时以正常中文着法记入棋谱', async () => {
+  await playMove('b2', 'b9')
+
+  expect(moveRows()).toEqual([['1', '炮八进七', '—']])
+  expect(container.querySelector('.move-history td[title="吃子"]')?.textContent).toBe('炮八进七')
+  expect(container.querySelectorAll('.board-piece')).toHaveLength(31)
+})
+
+test('悔棋只删除最后一着，并恢复上一着的起点和终点高亮', async () => {
+  await playMove('b0', 'c2')
+  await playMove('b9', 'c7')
+  await click(gameControl('悔棋'))
+
+  expect(moveRows()).toEqual([['1', '马八进七', '—']])
+  expectLastMove('b0', 'c2')
+})
+
+test('连续悔棋按顺序回退回合，最后清空记录和高亮', async () => {
+  await playMove('b0', 'c2')
+  await playMove('b9', 'c7')
+  await playMove('a3', 'a4')
+
+  await click(gameControl('悔棋'))
+  expect(moveRows()).toEqual([['1', '马八进七', '马２进３']])
+  expectLastMove('b9', 'c7')
+  await click(gameControl('悔棋'))
+  expect(moveRows()).toEqual([['1', '马八进七', '—']])
+  await click(gameControl('悔棋'))
+
+  expect(moveRows()).toEqual([])
+  expect(container.querySelector('.move-current-round')?.textContent).toBe('第 1 回合')
+  expect(container.querySelectorAll('.board-last-move')).toHaveLength(0)
+  expect(gameControl('悔棋').disabled).toBe(true)
+})
+
+test('吃子后悔棋恢复被吃的黑马和整个开局棋盘', async () => {
+  await playMove('b2', 'b9')
+  await click(gameControl('悔棋'))
+
+  expect(pieceAt('b9').textContent).toBe('馬')
+  expect(pieceAt('b2').textContent).toBe('炮')
+  expectBoardToMatch(rules.createStandardGame().getBoard())
+})
+
+test('悔棋归还行棋权，并清除原先的选中和提示', async () => {
+  await playMove('b0', 'c2')
+  await playMove('b9', 'c7')
+  await click(pieceAt('a3'))
+  await click(gameControl('悔棋'))
+
+  expect(boardStatus().textContent).toBe('黑方行棋')
+  expect(pieceAt('b9').disabled).toBe(false)
+  expect(container.querySelector('[aria-pressed="true"]')).toBeNull()
+  expect(targetSquares()).toEqual([])
+  await click(gameControl('悔棋'))
+  expect(boardStatus().textContent).toBe('红方行棋')
+})
+
+test('撤销应将着法后恢复被将军提示，再退一步恢复正常状态', async () => {
+  await showPosition(checkingFen)
+  await playMove('b7', 'b9')
+  await playMove('e9', 'e8')
+  expect(boardStatus().dataset.state).toBe('normal')
+
+  await click(gameControl('悔棋'))
+  expect(boardStatus().textContent).toBe('黑方行棋 · 被将军，请应将')
+  expectLastMove('b7', 'b9')
+  await click(gameControl('悔棋'))
+  expect(boardStatus().textContent).toBe('红方行棋')
+})
+
+test('从吃子后的局面重新开始，恢复标准开局的 32 枚棋子', async () => {
+  await playMove('b2', 'b9')
+  expect(container.querySelectorAll('.board-piece')).toHaveLength(31)
+  await click(gameControl('重新开始'))
+
+  expect(container.querySelectorAll('.board-piece')).toHaveLength(32)
+  expectBoardToMatch(rules.createStandardGame().getBoard())
+})
+
+test('黑方行棋时重新开始，新一局恢复红方先行', async () => {
+  await playMove('b0', 'c2')
+  expect(boardStatus().textContent).toBe('黑方行棋')
+  await click(gameControl('重新开始'))
+
+  expect(boardStatus().textContent).toBe('红方行棋')
+  expect(pieceAt('b0').disabled).toBe(false)
+  expect(pieceAt('b9').disabled).toBe(true)
+})
+
+test('重新开始清空棋谱和历史，新局只能撤销自己的着法', async () => {
+  await playMove('b0', 'c2')
+  await playMove('b9', 'c7')
+  await click(gameControl('重新开始'))
+
+  expect(moveRows()).toEqual([])
+  expect(gameControl('悔棋').disabled).toBe(true)
+  expect(container.querySelector('.move-current-round')?.textContent).toBe('第 1 回合')
+  await playMove('a3', 'a4')
+  await click(gameControl('悔棋'))
+  expect(moveRows()).toEqual([])
+  expect(gameControl('悔棋').disabled).toBe(true)
+  expectBoardToMatch(rules.createStandardGame().getBoard())
+})
+
+test.each([
+  { label: '将军', kind: 'check', fen: checkingFen, from: 'b7', to: 'b9' },
+  { label: '将死', kind: 'checkmate', ...checkmate },
+  { label: '困毙', kind: 'stalemate', ...stalemate },
+] as const)('重新开始后清除 $label 提示', async ({ kind, fen, from, to }) => {
+  await showPosition(fen)
+  await playMove(from, to)
+  expect(boardStatus().dataset.state).toBe(kind)
+  await click(gameControl('重新开始'))
+
+  expect(boardStatus().dataset.state).toBe('normal')
+  expect(boardStatus().textContent).toBe('红方行棋')
+  expect(moveRows()).toEqual([])
+})
+
+test('重新开始清除选中棋子、合法落点和上一步高亮', async () => {
+  await playMove('b0', 'c2')
+  await click(pieceAt('b9'))
+  expectLastMove('b0', 'c2')
+  expect(targetSquares()).not.toEqual([])
+  await click(gameControl('重新开始'))
+
+  expect(container.querySelector('[aria-pressed="true"]')).toBeNull()
+  expect(targetSquares()).toEqual([])
+  expect(container.querySelectorAll('.board-last-move')).toHaveLength(0)
+})
+
+test.each([
+  { label: '将死', side: '红方', ...checkmate, next: 'c7' },
+  { label: '困毙', side: '黑方', ...stalemate, next: 'h2' },
+] as const)('$label 后仍可悔棋并选择另一着继续对弈', async ({ side, fen, from, to, next }) => {
+  const game = await showPosition(fen)
+  await playMove(from, to)
+  expect(gameControl('悔棋').disabled).toBe(false)
+  await click(gameControl('悔棋'))
+
+  expect(game.toFen()).toBe(fen)
+  expect(boardStatus().textContent).toBe(`${side}行棋`)
+  expect(moveRows()).toEqual([])
+  await playMove(from, next)
+  expectLastMove(from, next)
+  expect(boardStatus().dataset.state).toBe('normal')
+})
+
+test.each([
+  { from: 'a4', to: 'b4', notation: '前车平八' },
+  { from: 'a2', to: 'b2', notation: '后车平八' },
+] as const)('两车同路时，$from 的记录是 $notation', async ({ from, to, notation }) => {
+  await showPosition('4k4/9/9/9/9/R8/9/R8/9/3K5 w - - 0 1')
+  await playMove(from, to)
+
+  expect(moveRows()).toEqual([['1', notation, '—']])
+})
+
+test('多卒编号存在不同约定时，在正确回合和黑方列标注坐标记录', async () => {
+  await showPosition('4k4/9/9/9/9/2p1p4/2p1p4/9/9/3K5 b - - 0 7')
+  await playMove('c4', 'b4')
+
+  expect(moveRows()).toEqual([['7', '—', '卒 c4–b4坐标记录']])
+  expect(container.querySelector('.move-coordinate-label')?.textContent).toBe('坐标记录')
+  expect(container.querySelector('.move-current-round')?.textContent).toBe('第 8 回合')
+})

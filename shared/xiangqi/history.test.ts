@@ -115,3 +115,21 @@ describe('悔棋', () => {
     expect(game.getStatus()).toEqual({ kind: 'normal', winner: null })
   })
 })
+
+test('非法走棋和导入失败保留棋谱，成功加载新局才清空记录', () => {
+  const game = createStandardGame()
+  const opening = game.toFen()
+  expect(game.tryMove({ from: 'b0', to: 'c2' })).toBe(true)
+  const played = game.getMoveHistory()
+  expect(played).toHaveLength(1)
+  expect(played[0]).toMatchObject({ round: 1, side: 'red', notation: '马八进七' })
+
+  expect(game.tryMove({ from: 'b9', to: 'b8' })).toBe(false)
+  expect(() => game.loadFen('9/9 w - - 0 1')).toThrow(/Invalid FEN/)
+  expect(game.getMoveHistory()).toEqual(played)
+
+  game.loadFen(opening)
+  expect(game.getMoveHistory()).toEqual([])
+  expect(game.undoMove()).toBe(false)
+  expect(played).toHaveLength(1)
+})

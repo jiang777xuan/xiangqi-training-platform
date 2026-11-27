@@ -81,17 +81,21 @@ a:focus-visible {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 35.25rem);
   align-items: center;
-  gap: clamp(1.5rem, 5vw, 5rem);
+  gap: clamp(1.5rem, 3.5vw, 3rem);
   padding-block: clamp(2rem, 4.2vw, 3.5rem);
   border-bottom: 1px solid var(--rule);
+}
+
+.hero-copy {
+  container-type: inline-size;
 }
 
 .hero h1 {
   margin: 0;
   font-family: var(--serif);
-  font-size: clamp(2.5rem, 5.65vw, 4rem);
+  font-size: clamp(2.5rem, 13.4cqi, 4rem);
   letter-spacing: 0.04em;
   line-height: 1.2;
 }
@@ -118,9 +122,16 @@ a:focus-visible {
   background: #702719;
 }
 
-.board-figure {
+.board-play {
+  display: grid;
+  grid-template-columns: minmax(0, 21rem) minmax(0, 13rem);
+  align-items: start;
   justify-self: center;
-  width: min(100%, 21rem);
+  gap: 1.25rem;
+  width: min(100%, 35.25rem);
+}
+
+.board-figure {
   margin: 0;
 }
 
@@ -337,6 +348,133 @@ button.board-target::before {
   text-align: center;
 }
 
+.move-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #cdbd9f;
+  border-radius: 0.4rem;
+  background: #f1e8d9;
+}
+
+.move-panel-header,
+.move-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem;
+}
+
+.move-panel-header {
+  justify-content: space-between;
+}
+
+.move-panel-header h2 {
+  margin: 0;
+  font: 700 1.125rem / 1.4 var(--serif);
+}
+
+.move-current-round {
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.2rem;
+  background: #e7d7b9;
+  color: #654622;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.move-history-scroll {
+  block-size: 16rem;
+  overflow: auto;
+  border-block: 1px solid #d8c9af;
+  background: #fbf8f1;
+  scrollbar-gutter: stable;
+}
+
+.move-history {
+  width: 100%;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  table-layout: fixed;
+  text-align: center;
+}
+
+.move-history thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: #eee4d4;
+}
+
+.move-history th,
+.move-history td {
+  padding: 0.5rem 0.2rem;
+  border-bottom: 1px solid #e7ddcb;
+}
+
+.move-history td {
+  overflow-wrap: anywhere;
+}
+
+.move-history th:first-child {
+  width: 2.6rem;
+}
+
+.move-history th[scope='row'] {
+  color: var(--muted-ink);
+  font-weight: 500;
+}
+
+.move-history tr[aria-current] {
+  background: #eee2ce;
+  font-weight: 600;
+}
+
+.move-coordinate-label {
+  display: block;
+  color: var(--muted-ink);
+  font-size: 0.8125rem;
+}
+
+.move-history-empty {
+  margin: 1rem 0;
+  color: var(--muted-ink);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.move-panel-controls button {
+  flex: 1;
+  min-height: 2.5rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #c8b99e;
+  border-radius: 0.25rem;
+  background: #faf6ee;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.move-panel-controls button:enabled:hover,
+.move-panel-controls button:enabled:active {
+  background: #e9dac0;
+}
+
+.move-panel-controls button:disabled {
+  color: #786e60;
+  background: transparent;
+  cursor: default;
+}
+
+.move-history-scroll:focus-visible,
+.move-panel-controls button:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: -2px;
+}
+
 .training {
   scroll-margin-top: 1.5rem;
   padding-block: 2.15rem 3.5rem;
@@ -400,6 +538,31 @@ button.board-target::before {
   white-space: nowrap;
 }
 
+@media (max-width: 60rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: clamp(1.5rem, 5vw, 5rem);
+    align-items: start;
+  }
+
+  .hero-copy {
+    padding-block-start: clamp(2.5rem, 12vw, 6.5rem);
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 5.65vw, 4rem);
+  }
+
+  .board-play {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 21rem);
+  }
+
+  .move-history-scroll {
+    block-size: 12rem;
+  }
+}
+
 @media (max-width: 42rem) {
   .container {
     width: calc(100% - 2rem);
@@ -408,6 +571,10 @@ button.board-target::before {
   .hero {
     grid-template-columns: 1fr;
     gap: 2rem;
+  }
+
+  .hero-copy {
+    padding-block-start: 0;
   }
 
   .hero h1 {

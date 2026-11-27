@@ -9,6 +9,14 @@ export interface XiangqiMove {
   readonly to: XiangqiSquare
 }
 
+export interface XiangqiMoveRecord extends XiangqiMove {
+  readonly round: number
+  readonly side: XiangqiSide
+  readonly piece: XiangqiPieceType
+  readonly notation: string | null
+  readonly capture: boolean
+}
+
 export interface XiangqiPiece {
   readonly side: XiangqiSide
   readonly type: XiangqiPieceType
@@ -24,6 +32,9 @@ export interface XiangqiGame {
   /** 棋盘按黑方底线到红方底线排列，每行从左到右，空位为 null。 */
   getBoard(): XiangqiBoard
   getTurn(): XiangqiSide
+  getRound(): number
+  /** 返回从当前棋局起点实走过的着法，按时间排列。 */
+  getMoveHistory(): readonly XiangqiMoveRecord[]
   /** 导出当前局面的六字段 FEN。 */
   toFen(): string
   /** 加载新局面并开始新的历史。失败时抛出错误并保留原棋局。 */
@@ -86,6 +97,7 @@ function readFen(fen: string): Chess {
 
 function wrapGame(initialGame: Chess): XiangqiGame {
   let game = initialGame
+  const moveHistory: XiangqiMoveRecord[] = []
 
   function getLegalMoves(from: XiangqiSquare): readonly XiangqiMove[] {
     return game.moves({ square: from, verbose: true }).map(({ from, to }) => ({ from, to }))
@@ -103,11 +115,18 @@ function wrapGame(initialGame: Chess): XiangqiGame {
     getTurn() {
       return sideByColor[game.turn()]
     },
+    getRound() {
+      return game.moveNumber()
+    },
+    getMoveHistory() {
+      return moveHistory.slice()
+    },
     toFen() {
       return game.fen()
     },
     loadFen(fen) {
       game = readFen(fen)
+      moveHistory.length = 0
     },
     getStatus() {
       const inCheck = game.isCheck()
@@ -129,11 +148,26 @@ function wrapGame(initialGame: Chess): XiangqiGame {
         return false
       }
 
-      game.move(move)
+      const round = game.moveNumber()
+      const played = game.move(move)
+      // WXF 字母用于多兵编号，遇到不同编号约定时保留无歧义的坐标。
+      const usesPawnNumbering = /^[Pp][a-e][+.-]/.test(played.wxf)
+      moveHistory.push({
+        from: played.from,
+        to: played.to,
+        round,
+        side: sideByColor[played.color],
+        piece: typeBySymbol[played.piece],
+        notation: usesPawnNumbering || played.zh === played.wxf ? null : played.zh,
+        capture: played.captured !== undefined,
+      })
       return true
     },
     undoMove() {
-      return game.undo() !== null
+      if (game.undo() === null) return false
+
+      moveHistory.pop()
+      return true
     },
   }
 }

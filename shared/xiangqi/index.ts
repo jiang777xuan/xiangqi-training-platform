@@ -24,13 +24,18 @@ export interface XiangqiGame {
   /** 棋盘按黑方底线到红方底线排列，每行从左到右，空位为 null。 */
   getBoard(): XiangqiBoard
   getTurn(): XiangqiSide
+  /** 导出当前局面的六字段 FEN。 */
   toFen(): string
+  /** 加载新局面并开始新的历史。失败时抛出错误并保留原棋局。 */
+  loadFen(fen: string): void
   /** 根据当前行棋方是否被将、是否还有合法着法判断局面及胜方。 */
   getStatus(): XiangqiGameStatus
   /** 查询当前行棋方在指定位置的合法着法。 */
   getLegalMoves(from: XiangqiSquare): readonly XiangqiMove[]
   /** 执行成功时返回 true，着法非法时返回 false 并保留当前局面。 */
   tryMove(move: XiangqiMove): boolean
+  /** 撤销最近一步合法着法，无着法可撤销时返回 false。 */
+  undoMove(): boolean
 }
 
 const sideByColor: Record<Color, XiangqiSide> = {
@@ -52,12 +57,36 @@ export function createStandardGame(): XiangqiGame {
   return wrapGame(new Chess())
 }
 
-/** 按规则库的 FEN 校验加载局面，校验失败时抛出错误。 */
+/** 从 FEN 创建独立棋局，校验失败时抛出错误。 */
 export function createGameFromFen(fen: string): XiangqiGame {
-  return wrapGame(new Chess(fen))
+  return wrapGame(readFen(fen))
 }
 
-function wrapGame(game: Chess): XiangqiGame {
+function isFenCounter(value: string): boolean {
+  return /^\d+$/.test(value) && Number.isSafeInteger(Number(value))
+}
+
+function readFen(fen: string): Chess {
+  const trimmedFen = fen.trim()
+  const [placement, , , , halfMoves = '0', moveNumber = '1'] = trimmedFen.split(/\s+/)
+
+  // 规则库用 parseInt 读取计数，先检查完整字段以免把错误输入截断。
+  if (placement.includes('0')) {
+    throw new Error('Invalid FEN: board empty squares must use digits 1 through 9')
+  }
+  if (!isFenCounter(halfMoves)) {
+    throw new Error('Invalid FEN: half-move counter must be a non-negative safe integer')
+  }
+  if (!isFenCounter(moveNumber) || Number(moveNumber) === 0) {
+    throw new Error('Invalid FEN: full-move number must be a positive safe integer')
+  }
+
+  return new Chess(trimmedFen)
+}
+
+function wrapGame(initialGame: Chess): XiangqiGame {
+  let game = initialGame
+
   function getLegalMoves(from: XiangqiSquare): readonly XiangqiMove[] {
     return game.moves({ square: from, verbose: true }).map(({ from, to }) => ({ from, to }))
   }
@@ -76,6 +105,9 @@ function wrapGame(game: Chess): XiangqiGame {
     },
     toFen() {
       return game.fen()
+    },
+    loadFen(fen) {
+      game = readFen(fen)
     },
     getStatus() {
       const inCheck = game.isCheck()
@@ -99,6 +131,9 @@ function wrapGame(game: Chess): XiangqiGame {
 
       game.move(move)
       return true
+    },
+    undoMove() {
+      return game.undo() !== null
     },
   }
 }

@@ -1,20 +1,12 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { createGameFromFen, createStandardGame, type XiangqiGame, type XiangqiMoveRecord, type XiangqiPieceType, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createGameFromFen, createStandardGame, type XiangqiGame, type XiangqiMoveRecord, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
 import { replayPositions, type LoadedArchive } from '../shared/xiangqi/archive'
+import { BoardSurface } from './BoardSurface'
+import { pieceNames, sideNames } from './boardLabels'
 import { FenDialog } from './FenDialog'
 import { GameArchiveControls } from './GameArchiveControls'
 
-const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] as const
-const ranks = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] as const
-const filePositions = files.map((_, index) => `${(index / (files.length - 1)) * 100}%`)
-const rankPositions = ranks.map((_, index) => `${(index / (ranks.length - 1)) * 100}%`)
-
-const sideNames = { red: '红方', black: '黑方' }
 const sides = ['red', 'black'] as const
-const pieceNames: Record<XiangqiSide, Record<XiangqiPieceType, string>> = {
-  red: { rook: '俥', horse: '傌', elephant: '相', advisor: '仕', king: '帥', cannon: '炮', pawn: '兵' },
-  black: { rook: '車', horse: '馬', elephant: '象', advisor: '士', king: '將', cannon: '砲', pawn: '卒' },
-}
 
 function moveText(move: XiangqiMoveRecord | undefined) {
   if (!move) return '—'
@@ -134,75 +126,15 @@ export function XiangqiBoard() {
 
   return (
     <div className="board-play">
-      <figure className="board-figure">
-        <div className="board-frame">
-          <div className="board-grid">
-            <div className="board-lines" aria-hidden="true">
-              {filePositions.map((left) => (
-                <div className="board-file" key={left} style={{ left }} />
-              ))}
-              {rankPositions.map((top) => (
-                <div className="board-rank" key={top} style={{ top }} />
-              ))}
-              <div className="board-palace board-palace-top" />
-              <div className="board-palace board-palace-bottom" />
-              <div className="board-river"><span>楚河</span><span>漢界</span></div>
-            </div>
-            {board.map((row, rowIndex) => row.map((piece, fileIndex) => {
-              const square: XiangqiSquare = `${files[fileIndex]}${ranks[rowIndex]}`
-              const isDestination = destinations.has(square)
-              const wasFrom = lastMove?.from === square
-              const wasTo = lastMove?.to === square
-              if (!piece && !isDestination && !wasFrom && !wasTo) return null
-
-              const position = { left: filePositions[fileIndex], top: rankPositions[rowIndex] }
-              return (
-                <Fragment key={square}>
-                  {(wasFrom || wasTo) && (
-                    <span
-                      className={`board-last-move ${wasFrom ? 'board-last-move-from' : 'board-last-move-to'}`}
-                      data-square={square}
-                      aria-hidden="true"
-                      style={position}
-                    />
-                  )}
-                  {piece && (
-                    <button
-                      type="button"
-                      className={`board-piece${piece.side === 'red' ? ' board-piece-red' : ''}`}
-                      data-square={square}
-                      aria-label={`${isDestination ? '吃子 ' : ''}${sideNames[piece.side]}${pieceNames[piece.side][piece.type]} ${square}`}
-                      aria-pressed={!reviewing && !gameOver && piece.side === turn ? selectedSquare === square : undefined}
-                      disabled={reviewing || gameOver || (piece.side !== turn && !isDestination)}
-                      style={position}
-                      onClick={() => handleSquareClick(square, piece.side)}
-                    >
-                      <span className="board-piece-face">{pieceNames[piece.side][piece.type]}</span>
-                    </button>
-                  )}
-                  {isDestination && (piece ? (
-                    <span
-                      className="board-target board-target-capture"
-                      data-square={square}
-                      aria-hidden="true"
-                      style={position}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="board-target"
-                      data-square={square}
-                      aria-label={`走到 ${square}`}
-                      style={position}
-                      onClick={() => handleSquareClick(square)}
-                    />
-                  ))}
-                </Fragment>
-              )
-            }))}
-          </div>
-        </div>
-        <figcaption>
+      <BoardSurface
+        board={board}
+        turn={turn}
+        interactive={!reviewing && !gameOver}
+        selectedSquare={selectedSquare}
+        destinations={destinations}
+        lastMove={lastMove}
+        onSquareClick={handleSquareClick}
+      >
           <span className="board-status" role="status" data-state={status.kind}>{statusText}</span>
           {!reviewing && status.kind === 'normal' && ' · 选棋后点击落点'}
           <span className="board-announcement" role="status">
@@ -215,8 +147,7 @@ export function XiangqiBoard() {
               <strong>当前局面已出现 {repetitionCount} 次。</strong>仅作重复提示，正式和棋须另行裁决。
             </p>
           )}
-        </figcaption>
-      </figure>
+      </BoardSurface>
 
       <section className="move-panel" aria-label="棋谱与对局操作">
         <div className="move-panel-header">

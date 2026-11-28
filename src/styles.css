@@ -769,6 +769,165 @@ button.board-target::before {
   line-height: 1.45;
 }
 
+.training-link {
+  color: var(--red);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.endgame-page {
+  padding-block: 2.25rem 3.5rem;
+}
+
+.endgame-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.65rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.endgame-header h1 {
+  margin: 0;
+  font: 700 clamp(2rem, 5vw, 3rem) / 1.2 var(--serif);
+}
+
+.endgame-header p {
+  margin: 0.45rem 0 0;
+  color: var(--muted-ink);
+}
+
+.endgame-chooser {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 12rem;
+  font-size: 0.875rem;
+}
+
+.endgame-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 19rem);
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.endgame-layout .board-figure {
+  justify-self: center;
+  width: min(100%, 30rem);
+}
+
+.endgame-details {
+  padding: 1rem;
+  border: 1px solid #cdbd9f;
+  border-radius: 0.4rem;
+  background: #f1e8d9;
+}
+
+.endgame-summary h2 {
+  margin: 0.35rem 0 0.85rem;
+  font: 700 1.65rem / 1.25 var(--serif);
+}
+
+.endgame-summary h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.endgame-summary p,
+.endgame-feedback p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.endgame-category,
+.endgame-progress {
+  color: var(--muted-ink);
+  font-size: 0.875rem;
+}
+
+.endgame-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-block: 1rem;
+}
+
+.endgame-actions button,
+.endgame-chooser select {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #c8b99e;
+  border-radius: 0.25rem;
+  background: #faf6ee;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.endgame-actions button:enabled {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.endgame-actions button:enabled:hover,
+.endgame-actions button:enabled:active {
+  background: #e9dac0;
+}
+
+.endgame-actions button:disabled {
+  background: transparent;
+  color: #665c4d;
+}
+
+.endgame-actions button:focus-visible,
+.endgame-chooser select:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+.endgame-hints {
+  margin: 0 0 0.75rem;
+  padding-inline-start: 1.35rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.endgame-hints li + li {
+  margin-top: 0.4rem;
+}
+
+.endgame-feedback {
+  padding: 0.65rem;
+  border-left: 2px solid #9b784d;
+  background: #fbf8f1;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.endgame-feedback[data-feedback='incorrect'],
+.endgame-feedback[data-feedback='illegal'] {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.endgame-feedback[data-feedback='complete'] {
+  border-color: #526746;
+  color: #394e2d;
+}
+
+.endgame-feedback p {
+  margin-top: 0.35rem;
+}
+
+.endgame-progress {
+  margin: 0.65rem 0 0;
+  line-height: 1.55;
+}
+
 .module-copy p {
   margin: 0.2rem 0 0;
   color: var(--muted-ink);
@@ -787,6 +946,16 @@ button.board-target::before {
 }
 
 @media (max-width: 60rem) {
+  .endgame-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .endgame-layout .board-figure,
+  .endgame-details {
+    justify-self: center;
+    width: min(100%, 27rem);
+  }
+
   .hero {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
     gap: clamp(1.5rem, 5vw, 5rem);

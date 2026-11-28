@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
+    "engine:smoke": "node --env-file-if-exists=.env scripts/engine-smoke.ts",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",

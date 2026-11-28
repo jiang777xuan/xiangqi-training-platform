@@ -4,6 +4,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "types": ["vite/client", "node"],
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
@@ -16,5 +17,5 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true
   },
-  "include": ["src", "shared", "vite.config.ts"]
+  "include": ["src", "shared", "server", "scripts", "vite.config.ts"]
 }

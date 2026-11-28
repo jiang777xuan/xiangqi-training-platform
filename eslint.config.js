@@ -9,6 +9,16 @@ export default defineConfig([
   globalIgnores(['dist']),
   js.configs.recommended,
   {
+    files: ['src/**/*.{ts,tsx}', 'shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { regex: '(?:^|/)(?:server|scripts)/', message: 'Keep Node.js engine modules outside the browser import graph.' },
+        ],
+      }],
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [tseslint.configs.recommended],
   },

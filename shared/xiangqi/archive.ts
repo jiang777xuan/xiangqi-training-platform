@@ -1,4 +1,4 @@
-import { createGameFromFen, type XiangqiGame, type XiangqiMove, type XiangqiSquare } from './index'
+import { createGameFromFen, type XiangqiGame, type XiangqiMove, type XiangqiSquare } from './index.ts'
 
 export const maxArchiveSize = 256 * 1024
 export const maxArchiveMoves = 2000
@@ -38,7 +38,8 @@ function isSavedAt(value: unknown): value is string {
   return Number.isFinite(time) && new Date(time).toISOString() === value
 }
 
-function rebuildGame(initialFen: string, moves: readonly XiangqiMove[], recordPosition?: (fen: string) => void) {
+/** 在独立棋局中重放着法，保留历史、记谱和重复局面信息。 */
+export function rebuildGame(initialFen: string, moves: readonly XiangqiMove[], recordPosition?: (fen: string) => void) {
   let game: XiangqiGame
   try {
     game = createGameFromFen(initialFen)

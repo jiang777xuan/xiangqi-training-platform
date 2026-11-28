@@ -348,6 +348,16 @@ button.board-target::before {
   text-align: center;
 }
 
+.board-repetition {
+  margin: 0.55rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.25rem;
+  background: #eee2ce;
+  color: #654622;
+  letter-spacing: normal;
+  line-height: 1.5;
+}
+
 .move-panel {
   min-width: 0;
   overflow: hidden;

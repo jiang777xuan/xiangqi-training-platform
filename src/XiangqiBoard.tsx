@@ -38,6 +38,7 @@ export function XiangqiBoard() {
   const historyScroll = useRef<HTMLDivElement>(null)
   const reviewing = reviewStep !== null
   const viewedStep = reviewStep ?? history.length
+  const repetitionCount = game.getRepetitionCount(viewedStep)
   const positions = useMemo(() => reviewing ? replayPositions(initialFen, history) : null, [reviewing, initialFen, history])
   const displayedGame = useMemo(() => positions ? createGameFromFen(positions[viewedStep]) : game, [positions, viewedStep, game])
   const lastMove = history[viewedStep - 1]
@@ -209,6 +210,11 @@ export function XiangqiBoard() {
               ? `${selectedSquare} 的合法落点为 ${[...destinations].join('、')}`
               : `${selectedSquare} 没有合法落点`)}
           </span>
+          {repetitionCount >= 3 && (
+            <p className="board-repetition" role="status">
+              <strong>当前局面已出现 {repetitionCount} 次。</strong>仅作重复提示，正式和棋须另行裁决。
+            </p>
+          )}
         </figcaption>
       </figure>
 

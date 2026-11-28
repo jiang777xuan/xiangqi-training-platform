@@ -35,6 +35,8 @@ export interface XiangqiGame {
   getRound(): number
   /** 返回从当前棋局起点实走过的着法，按时间排列。 */
   getMoveHistory(): readonly XiangqiMoveRecord[]
+  /** 第 0 着为起点。只统计到指定步数为止，该步局面出现的次数。 */
+  getRepetitionCount(step?: number): number
   /** 导出当前局面的六字段 FEN。 */
   toFen(): string
   /** 加载新局面并开始新的历史。失败时抛出错误并保留原棋局。 */
@@ -95,9 +97,15 @@ function readFen(fen: string): Chess {
   return new Chess(trimmedFen)
 }
 
+function positionKey(canonicalFen: string): string {
+  // 标准化 FEN 的棋子布局含阵营，第二字段是行棋方。
+  return canonicalFen.split(' ', 2).join(' ')
+}
+
 function wrapGame(initialGame: Chess): XiangqiGame {
   let game = initialGame
   const moveHistory: XiangqiMoveRecord[] = []
+  const positionKeys = [positionKey(game.fen())]
 
   function getLegalMoves(from: XiangqiSquare): readonly XiangqiMove[] {
     return game.moves({ square: from, verbose: true }).map(({ from, to }) => ({ from, to }))
@@ -121,12 +129,24 @@ function wrapGame(initialGame: Chess): XiangqiGame {
     getMoveHistory() {
       return moveHistory.slice()
     },
+    getRepetitionCount(step = moveHistory.length) {
+      const key = positionKeys[step]
+      if (key === undefined) throw new RangeError('步数超出当前棋谱范围。')
+
+      let count = 0
+      for (let index = 0; index <= step; index++) {
+        if (positionKeys[index] === key) count++
+      }
+      return count
+    },
     toFen() {
       return game.fen()
     },
     loadFen(fen) {
       game = readFen(fen)
       moveHistory.length = 0
+      positionKeys.length = 1
+      positionKeys[0] = positionKey(game.fen())
     },
     getStatus() {
       const inCheck = game.isCheck()
@@ -161,12 +181,14 @@ function wrapGame(initialGame: Chess): XiangqiGame {
         notation: usesPawnNumbering || played.zh === played.wxf ? null : played.zh,
         capture: played.captured !== undefined,
       })
+      positionKeys.push(positionKey(played.after))
       return true
     },
     undoMove() {
       if (game.undo() === null) return false
 
       moveHistory.pop()
+      positionKeys.pop()
       return true
     },
   }

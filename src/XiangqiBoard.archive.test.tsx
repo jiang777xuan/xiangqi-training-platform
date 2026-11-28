@@ -312,3 +312,127 @@ test('重新打开后，上一轮延迟送达的关闭事件不会清空已校�
   await press('确认导入棋谱')
   expect(view().pieces).toBe(30)
 })
+
+const horseCycle = [
+  { from: 'b0', to: 'c2' }, { from: 'b9', to: 'c7' },
+  { from: 'c2', to: 'b0' }, { from: 'c7', to: 'b9' },
+] as const
+
+async function playHorseCycle() {
+  for (const { from, to } of horseCycle) await play(from, to)
+}
+
+function repetitionNotice() {
+  return container.querySelector('.board-repetition')?.textContent
+}
+
+test('第三次才显示提示，可继续落子，悔棋和重开同步更新提示', async () => {
+  expect(repetitionNotice()).toBeUndefined()
+  await playHorseCycle()
+  expect(repetitionNotice()).toBeUndefined()
+  await playHorseCycle()
+  expect(repetitionNotice()).toContain('当前局面已出现 3 次')
+  expect(repetitionNotice()).toContain('正式和棋须另行裁决')
+  expect(view().replay).toBe('正在对弈8 / 8 着')
+
+  await play('b0', 'c2')
+  expect(view().status).toBe('黑方行棋')
+  await press('悔棋')
+  expect(repetitionNotice()).toContain('当前局面已出现 3 次')
+  await press('悔棋')
+  expect(repetitionNotice()).toBeUndefined()
+  await play('c7', 'b9')
+  expect(repetitionNotice()).toContain('当前局面已出现 3 次')
+
+  await press('重新开始')
+  expect(repetitionNotice()).toBeUndefined()
+  expect(view()).toMatchObject({ fen: standard, records: [], marked: [], undoDisabled: true })
+  await playHorseCycle()
+  expect(repetitionNotice()).toBeUndefined()
+})
+
+test('导入 FEN 后重新计数，应将仍可走，重置恢复该 FEN 起点', async () => {
+  await playHorseCycle()
+  await playHorseCycle()
+  expect(repetitionNotice()).toContain('当前局面已出现 3 次')
+
+  await press('局面 FEN')
+  await press('残局示例（黑方应将）')
+  await press('导入局面')
+  await press('确认覆盖')
+  const startingFen = fen()
+  expect(view().status).toBe('黑方行棋 · 被将军，请应将')
+  expect(repetitionNotice()).toBeUndefined()
+
+  for (let cycle = 0; cycle < 2; cycle++) {
+    await play('e9', 'e8')
+    await play('b9', 'b8')
+    await play('e8', 'e9')
+    await play('b8', 'b9')
+  }
+  expect(view().status).toBe('黑方行棋 · 被将军，请应将')
+  expect(repetitionNotice()).toContain('当前局面已出现 3 次')
+  await play('e9', 'e8')
+  expect(view().status).toBe('红方行棋')
+
+  await press('重置当前局面')
+  expect(view()).toMatchObject({ fen: startingFen, status: '黑方行棋 · 被将军，请应将', records: [], undoDisabled: true })
+  expect(repetitionNotice()).toBeUndefined()
+})
+
+test('JSON 恢复重复次数，复盘只看当前历史，返回最新恢复提示', async () => {
+  await chooseArchive(makeArchive({ moves: [...horseCycle, ...horseCycle, ...horseCycle] }))
+  await press('确认导入棋谱')
+  const live = view()
+  expect(repetitionNotice()).toContain('当前局面已出现 4 次')
+
+  await click(find('.move-record[data-step="4"]'))
+  expect(view().replay).toBe('正在复盘4 / 12 着')
+  expect(repetitionNotice()).toBeUndefined()
+  await click(find('.move-record[data-step="8"]'))
+  expect(repetitionNotice()).toContain('当前局面已出现 3 次')
+  expect(records()).toHaveLength(12)
+  await press('回到起始局面')
+  expect(repetitionNotice()).toBeUndefined()
+  await press('回到最新局面')
+  expect(view()).toEqual(live)
+  expect(repetitionNotice()).toContain('当前局面已出现 4 次')
+})
+
+test('从标准开局走到将死，双列棋谱、吃子、终局悔棋和存档保持同步', async () => {
+  const moves = [
+    { from: 'b2', to: 'c2' }, { from: 'h7', to: 'c7' }, { from: 'c2', to: 'c6' },
+    { from: 'f9', to: 'e8' }, { from: 'c6', to: 'c9' },
+  ] as const
+  expect(fen()).toBe(standard)
+  for (const { from, to } of moves.slice(0, -1)) await play(from, to)
+  const beforeMate = view()
+  expect(beforeMate.pieces).toBe(31)
+  await play('c6', 'c9')
+
+  const terminal = view()
+  expect(terminal).toMatchObject({ status: '红方获胜 · 黑方被将死', pieces: 30, undoDisabled: false })
+  expect(find('.board-piece[data-square="c9"]').textContent).toBe('炮')
+  expect([...container.querySelectorAll<HTMLTableRowElement>('.move-history tbody tr')]
+    .map((row) => [...row.cells].map((cell) => cell.textContent))).toEqual([
+    ['1', '炮八平七', '炮８平３'], ['2', '炮七进四', '士６进５'], ['3', '炮七进三', '—'],
+  ])
+  expect(container.querySelectorAll('.move-history td[title="吃子"]')).toHaveLength(2)
+  await click(find('.board-piece[data-square="e9"]'))
+  expect(view()).toEqual(terminal)
+  await press('悔棋')
+  expect(view()).toEqual(beforeMate)
+  expect(find('.board-piece[data-square="c9"]').textContent).toBe('象')
+  await play('c6', 'c9')
+
+  const { archive, game } = await downloadedArchive()
+  expect(archive).toMatchObject({ initialFen: standard, moves })
+  expect(game.toFen()).toBe(terminal.fen)
+  await press('重新开始')
+  expect(view()).toMatchObject({ fen: standard, pieces: 32, records: [], marked: [], undoDisabled: true })
+  await chooseArchive(JSON.stringify(archive))
+  await press('确认导入棋谱')
+  expect(view()).toEqual(terminal)
+  await press('悔棋')
+  expect(view()).toEqual(beforeMate)
+})

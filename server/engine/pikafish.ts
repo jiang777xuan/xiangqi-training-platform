@@ -15,9 +15,18 @@ export class PikafishEngine {
   private tail: Promise<void> = Promise.resolve()
   private active?: { controller: AbortController; done: Promise<void> }
   private closing?: Promise<void>
+  private reportedVersion: string | null = null
 
   constructor(config: PikafishConfig = readPikafishConfig()) {
     this.config = validatePikafishConfig(config)
+  }
+
+  get version() {
+    return this.reportedVersion
+  }
+
+  get ready() {
+    return this.process?.reusable === true
   }
 
   async analyze(request: AnalysisRequest, { signal }: { signal?: AbortSignal } = {}): Promise<AnalysisResult> {
@@ -102,6 +111,7 @@ export class PikafishEngine {
     try {
       await process.request(['uci'], 'uciok', this.config.hardTimeoutMs, signal, (message) => {
         if (message.kind === 'spin-option') this.options.set(message.name.toLowerCase(), message)
+        if (message.kind === 'engine-version') this.reportedVersion = message.version
       })
       const settings = [...this.optionCommand('Threads', this.config.threads), ...this.optionCommand('Hash', this.config.hashMb)]
       await process.request([...settings, 'isready'], 'readyok', this.config.hardTimeoutMs, signal)

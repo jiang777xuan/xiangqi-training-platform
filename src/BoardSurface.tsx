@@ -14,11 +14,12 @@ interface BoardSurfaceProps {
   selectedSquare: XiangqiSquare | null
   destinations: ReadonlySet<XiangqiSquare>
   lastMove?: XiangqiMove | null
+  analysisMove?: XiangqiMove | null
   onSquareClick: (square: XiangqiSquare, side?: XiangqiSide) => void
   children: ReactNode
 }
 
-export function BoardSurface({ board, turn, interactive, selectedSquare, destinations, lastMove, onSquareClick, children }: BoardSurfaceProps) {
+export function BoardSurface({ board, turn, interactive, selectedSquare, destinations, lastMove, analysisMove, onSquareClick, children }: BoardSurfaceProps) {
   return (
     <figure className="board-figure">
       <div className="board-frame">
@@ -39,7 +40,9 @@ export function BoardSurface({ board, turn, interactive, selectedSquare, destina
             const isDestination = destinations.has(square)
             const wasFrom = lastMove?.from === square
             const wasTo = lastMove?.to === square
-            if (!piece && !isDestination && !wasFrom && !wasTo) return null
+            const analysisFrom = analysisMove?.from === square
+            const analysisTo = analysisMove?.to === square
+            if (!piece && !isDestination && !wasFrom && !wasTo && !analysisFrom && !analysisTo) return null
 
             const position = { left: filePositions[fileIndex], top: rankPositions[rowIndex] }
             return (
@@ -83,6 +86,10 @@ export function BoardSurface({ board, turn, interactive, selectedSquare, destina
                     onClick={() => onSquareClick(square)}
                   />
                 ))}
+                {(analysisFrom || analysisTo) && (
+                  <span aria-hidden="true" className={`board-analysis-mark ${analysisFrom ? 'board-analysis-from' : 'board-analysis-to'}`}
+                    style={position} data-square={square} />
+                )}
               </Fragment>
             )
           }))}

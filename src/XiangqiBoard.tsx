@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createGameFromFen, createStandardGame, type XiangqiGame, type XiangqiMoveRecord, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
+import { createGameFromFen, createStandardGame, type XiangqiGame, type XiangqiMove, type XiangqiMoveRecord, type XiangqiSide, type XiangqiSquare } from '../shared/xiangqi'
 import { replayPositions, type LoadedArchive } from '../shared/xiangqi/archive'
 import { BoardSurface } from './BoardSurface'
 import { pieceNames, sideNames } from './boardLabels'
 import { FenDialog } from './FenDialog'
 import { GameArchiveControls } from './GameArchiveControls'
+import { EngineAnalysisPanel, type AnalysisSnapshot } from './EngineAnalysisPanel'
 
 const sides = ['red', 'black'] as const
 
@@ -20,19 +21,29 @@ function moveText(move: XiangqiMoveRecord | undefined) {
   )
 }
 
-export function XiangqiBoard() {
+export function XiangqiBoard({ analysisEnabled = true }: { analysisEnabled?: boolean } = {}) {
   const [game, setGame] = useState(createStandardGame)
   const [initialFen, setInitialFen] = useState(() => game.toFen())
   const [gameName, setGameName] = useState<string>()
   const [history, setHistory] = useState(() => game.getMoveHistory())
   const [selectedSquare, setSelectedSquare] = useState<XiangqiSquare | null>(null)
   const [reviewStep, setReviewStep] = useState<number | null>(null)
+  const [analysisOpen, setAnalysisOpen] = useState(false)
+  const [highlight, setHighlight] = useState<{ snapshot: AnalysisSnapshot; move: XiangqiMove } | null>(null)
   const historyScroll = useRef<HTMLDivElement>(null)
   const reviewing = reviewStep !== null
   const viewedStep = reviewStep ?? history.length
   const repetitionCount = game.getRepetitionCount(viewedStep)
   const positions = useMemo(() => reviewing ? replayPositions(initialFen, history) : null, [reviewing, initialFen, history])
   const displayedGame = useMemo(() => positions ? createGameFromFen(positions[viewedStep]) : game, [positions, viewedStep, game])
+  const displayedFen = displayedGame.toFen()
+  // history changes on every committed board edit, even a reset to the same FEN.
+  const analysisSnapshot = useMemo<AnalysisSnapshot | null>(() => analysisEnabled && analysisOpen ? {
+    initialFen, fen: displayedFen,
+    moves: history.slice(0, viewedStep).map(({ from, to }) => ({ from, to })),
+    step: viewedStep, reviewing,
+  } : null, [analysisEnabled, analysisOpen, initialFen, displayedFen, history, viewedStep, reviewing])
+  const analysisMove = highlight?.snapshot === analysisSnapshot ? highlight.move : null
   const lastMove = history[viewedStep - 1]
   const board = displayedGame.getBoard()
   const turn = displayedGame.getTurn()
@@ -133,6 +144,7 @@ export function XiangqiBoard() {
         selectedSquare={selectedSquare}
         destinations={destinations}
         lastMove={lastMove}
+        analysisMove={analysisMove}
         onSquareClick={handleSquareClick}
       >
           <span className="board-status" role="status" data-state={status.kind}>{statusText}</span>
@@ -214,12 +226,24 @@ export function XiangqiBoard() {
         <div className="move-panel-controls">
           <button type="button" onClick={handleUndo} disabled={reviewing || history.length === 0}>悔棋</button>
           <button type="button" onClick={() => startGame(createStandardGame())} disabled={reviewing}>重新开始</button>
-          <FenDialog fen={displayedGame.toFen()} hasHistory={history.length > 0} canImport={!reviewing} onImport={startGame} />
+          <FenDialog fen={displayedFen} hasHistory={history.length > 0} canImport={!reviewing} onImport={startGame} />
           <button type="button" onClick={resetPosition} disabled={reviewing}>重置当前局面</button>
           <GameArchiveControls initialFen={initialFen} moves={history} name={gameName} canImport={!reviewing} onImport={importArchive} />
           <p className="move-reset-help">重新开始回到标准开局。重置回到本局起点。</p>
         </div>
       </section>
+      {analysisEnabled && (
+        <section className="analysis-panel" aria-label="引擎分析">
+          <button className="analysis-toggle" type="button" aria-expanded={analysisOpen} onClick={() => {
+            setAnalysisOpen(!analysisOpen)
+            setHighlight(null)
+          }}>
+            引擎分析 <span aria-hidden="true">{analysisOpen ? '−' : '+'}</span>
+          </button>
+          {analysisSnapshot && <EngineAnalysisPanel snapshot={analysisSnapshot} marked={analysisMove !== null}
+            onHighlight={(move) => setHighlight(move ? { move, snapshot: analysisSnapshot } : null)} />}
+        </section>
+      )}
     </div>
   )
 }

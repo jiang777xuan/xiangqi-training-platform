@@ -27,6 +27,7 @@ export interface UciSpinOption {
 }
 
 export type UciMessage = UciInfo | UciBestMove | UciSpinOption
+  | { readonly kind: 'engine-version'; readonly version: string }
   | { readonly kind: 'uciok' | 'readyok' | 'invalid-bestmove' }
 
 export function isSquare(value: unknown): value is XiangqiSquare {
@@ -102,6 +103,8 @@ function parseInfo(tokens: string[]): UciInfo | null {
 export function parseUciLine(line: string): UciMessage | null {
   const trimmed = line.trim()
   if (trimmed === 'uciok' || trimmed === 'readyok') return { kind: trimmed }
+  const version = trimmed.match(/^id name Pikafish ([a-z0-9][a-z0-9._-]{0,39})$/i)
+  if (version) return { kind: 'engine-version', version: version[1] }
   const tokens = trimmed.split(/\s+/)
   if (tokens[0] === 'bestmove') return parseBestMove(tokens)
   if (tokens[0] === 'info') return parseInfo(tokens)

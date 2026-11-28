@@ -49,7 +49,7 @@ export function App() {
             <p>专注于中国象棋的学习、训练与实战提升。</p>
             <a className="primary-link" href="#training">查看训练入口</a>
           </div>
-          <XiangqiBoard />
+          <XiangqiBoard analysisEnabled={!training} />
         </section>
 
         <section className="training" id="training" aria-labelledby="training-title">

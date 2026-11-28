@@ -3,7 +3,7 @@ Open-source Chinese Chess Training Platform
 
 ## Xiangqi Master · 中国象棋研习社
 
-专注于中国象棋的学习、训练与实战提升。当前版本提供中文首页、静态棋盘和五个待开发的训练入口。
+专注于中国象棋的学习、训练与实战提升。当前版本提供中文首页、可交互棋盘、残局闯关演示和本地引擎分析。
 
 ## 在本机运行
 
@@ -37,3 +37,16 @@ npm.cmd run engine:smoke
 也可以把 `.env.example` 复制为 `.env` 并填写路径。真实引擎验证命令会让 Node.js 读取该文件。PowerShell 已设置的环境变量优先。普通 `npm.cmd test` 使用模拟引擎。
 
 `PikafishEngine.analyze()` 接收初始 FEN 和按顺序排列的历史坐标，支持按毫秒、深度或节点数搜索。默认使用 4 个线程、128 MB 哈希、1 条候选、1000 ms 搜索时间和 10000 ms 搜索超时。可用 `AbortSignal` 取消一次请求，使用完毕后调用 `close()` 释放进程。这个模块供 Node.js 使用，浏览器界面独立运行。
+
+## 使用网页引擎分析
+
+在项目目录打开两个 PowerShell 窗口。第一个窗口在设置 `PIKAFISH_PATH` 后运行 `npm.cmd run dev:server`，第二个窗口运行 `npm.cmd run dev`。浏览器打开 `http://localhost:5173`，在基础棋盘下展开「引擎分析」。后端只监听 `127.0.0.1:3001`，网页通过 Vite 的 `/api` 代理连接。可在本地 `.env` 用 `XIANGQI_WEB_PORT` 和 `XIANGQI_API_PORT` 调整端口。
+
+| 接口 | 用途 |
+| --- | --- |
+| `GET /api/health` | 查询 HTTP 服务是否运行 |
+| `GET /api/engine/status` | 查询引擎配置、可用性、版本和任务状态 |
+| `POST /api/engine/analyze` | 发送带唯一 `requestId` 的起始 FEN、历史着法和搜索设置 |
+| `POST /api/engine/cancel` | 用 `{ "requestId": "原分析的编号" }` 停止指定任务 |
+
+分析和取消使用 `application/json`。每次分析使用新的请求编号。普通测试使用模拟引擎和本机临时 HTTP 端口，真实引擎由 `npm.cmd run engine:smoke` 单独验证。
